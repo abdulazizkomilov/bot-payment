@@ -65,4 +65,7 @@ jobs:
               -v /root/bot-payment/.env:/app/.env \
               ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:prod-latest
             
+            echo "Cleaning up..."
+            docker system prune -f
+            
             echo "Deployment completed successfully!"
