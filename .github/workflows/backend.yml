@@ -51,15 +51,15 @@ jobs:
           key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
           script: |
             echo "Stopping and removing existing container..."
-            docker stop mohirpool_backend || true
-            docker rm mohirpool_backend || true
+            docker stop bot_payment || true
+            docker rm bot_payment || true
             
             echo "Pulling latest image..."
             docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:prod-latest
             
             echo "Running new container..."
             docker run -d \
-              --name mohirpool_backend \
+              --name bot_payment \
               --restart always \
               -p 8000:8000 \
               -v /root/bot-payment/.env:/app/.env \
