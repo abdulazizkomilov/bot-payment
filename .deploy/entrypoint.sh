@@ -1,5 +1,7 @@
 #!/bin/bash
 
+mkdir -p staticfiles static
+
 # Run migrations
 echo "Running migrations"
 python manage.py migrate
