@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from drf_spectacular.utils import extend_schema
+from core.settings import SITE_URL
 
 
 class CheckOrder(Paycom):
@@ -94,7 +95,7 @@ class PaycomInitializationView(APIView):
         url = paycom.create_initialization(
             amount=float(amount),
             order_id=str(order.id),
-            return_url="https://863e-188-113-234-128.ngrok-free.app/paycom/success",
+            return_url=f"http://{SITE_URL}/paycom/success",
         )
 
         return Response({"payment_url": url}, status=status.HTTP_200_OK)
