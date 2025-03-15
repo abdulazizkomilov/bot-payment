@@ -5,7 +5,7 @@ ENV PYTHONUNBUFFERED=1
 ENV VIRTUAL_ENV=/opt/venv
 
 RUN apt-get update && apt-get install -y \
-    apt-utils curl netcat vim gettext python3-venv libpq-dev gcc \
+    apt-utils curl netcat vim gettext python3-venv libpq-dev gcc postgresql-client \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN python3 -m venv $VIRTUAL_ENV
