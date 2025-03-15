@@ -135,10 +135,10 @@ STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 PAYCOM_SETTINGS = {
-    "KASSA_ID": "67ce4e6360f9190638f3ac09",
-    "SECRET_KEY": "HkC9GHkwjq0Wxh21W#6gshD8MDhiI1r@ykpS",
-    "TOKEN": "67ce4e6360f9190638f3ac09",
-    "KEY": "HkC9GHkwjq0Wxh21W#6gshD8MDhiI1r@ykpS",
+    "KASSA_ID": config("KASSA_ID"),
+    "SECRET_KEY": config("SECRET_KEY"),
+    "TOKEN": config("KASSA_ID"),
+    "KEY": config("SECRET_KEY"),
     "ACCOUNTS": {
         "KEY": "order_id"
     },
