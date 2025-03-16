@@ -13,4 +13,4 @@ python manage.py collectstatic --no-input
 
 # Start Django server
 echo "Starting Django server"
-gunicorn core.wsgi:application --bind 0.0.0.0:8000 --workers 2
+gunicorn core.wsgi:application --bind 0.0.0.0:8000 --workers 4
