@@ -1,4 +1,3 @@
-import logging
 from datetime import datetime, timedelta
 from core.settings import users_collection
 
@@ -11,7 +10,7 @@ def update_user_payment(user_id: int, amount: int):
     elif amount == 10000:
         payment_valid_date = payment_date + timedelta(weeks=1)
     else:
-        logging.error(f"Xato: {amount} so‘m to‘lov summasi noto‘g‘ri!")
+        print(f"Xato: {amount} so‘m to‘lov summasi noto‘g‘ri!")
         return
 
     filter_query = {"_id": user_id}
@@ -26,6 +25,6 @@ def update_user_payment(user_id: int, amount: int):
     result = users_collection.update_one(filter_query, update_data)
 
     if result.matched_count:
-        logging.info(f"User {user_id} muvaffaqiyatli to‘ldirildi.")
+        print(f"User {user_id} muvaffaqiyatli to‘ldirildi.")
     else:
-        logging.error(f"User {user_id} topilmadi.")
+        print(f"User {user_id} topilmadi.")

@@ -1,4 +1,3 @@
-import logging
 from decimal import Decimal, ROUND_DOWN
 from uuid import UUID
 from django.db import transaction
@@ -24,8 +23,6 @@ class CheckOrder(Paycom):
         order = Order.objects.filter(id=order_id, is_finished=False).first()
         if not order:
             return self.ORDER_NOT_FOND
-        print("amount", amount)
-        print("order.total * 100", order.total * 100)
         if order.total * 100 != amount:
             return self.INVALID_AMOUNT
         return self.ORDER_FOUND
@@ -49,7 +46,7 @@ class CheckOrder(Paycom):
 
     def cancel_payment(self, account, transaction, *args, **kwargs):
         """To‘lov bekor qilinganda ishlaydi"""
-        logging.info(f"Transaction canceled: {transaction.order_key}")
+        print(f"Transaction canceled: {transaction.order_key}")
 
 
 class TestView(MerchantAPIView):
@@ -99,14 +96,14 @@ class PaycomInitializationView(APIView):
                             status=status.HTTP_400_BAD_REQUEST)
 
         try:
+            order = Order.objects.create(user_id=user_id, total=int(amount))
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
             amount = Decimal(amount).quantize(Decimal("0.01"), rounding=ROUND_DOWN)
         except Exception:
             return Response({"error": "Noto‘g‘ri amount qiymati"}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            order = Order.objects.create(user_id=user_id, total=amount)
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         paycom = Paycom()
         url = paycom.create_initialization(
