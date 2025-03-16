@@ -5,6 +5,7 @@ charset-normalizer==3.4.1
 Django==4.2.7
 django-cors-headers==4.7.0
 djangorestframework==3.14.0
+dnspython==2.7.0
 drf-spectacular==0.27.2
 gunicorn==23.0.0
 idna==3.10
@@ -13,7 +14,7 @@ jsonschema==4.23.0
 jsonschema-specifications==2024.10.1
 packaging==24.2
 PaycomUz==3.0
-psycopg2==2.9.10
+pymongo==4.11.2
 python-decouple==3.8
 pytz==2025.1
 PyYAML==6.0.2

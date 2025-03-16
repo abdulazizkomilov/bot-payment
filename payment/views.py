@@ -1,3 +1,5 @@
+import logging
+from decimal import Decimal, ROUND_DOWN
 from uuid import UUID
 from django.db import transaction
 from paycomuz import Paycom
@@ -8,41 +10,50 @@ from rest_framework.response import Response
 from rest_framework import status
 from drf_spectacular.utils import extend_schema
 from core.settings import SITE_URL
+from payment.utils import update_user_payment
 
 
 class CheckOrder(Paycom):
     def check_order(self, amount, account, *args, **kwargs):
+        """Buyurtmani tekshirish"""
         try:
-            order_id = UUID(account["order_id"])  # UUID validatsiyasi
+            order_id = UUID(account["order_id"])
         except ValueError:
-            return self.ORDER_NOT_FOND  # Yaroqsiz UUID bo‘lsa, xatolik
+            return self.ORDER_NOT_FOND
 
         order = Order.objects.filter(id=order_id, is_finished=False).first()
         if not order:
             return self.ORDER_NOT_FOND
+        print("amount", amount)
+        print("order.total * 100", order.total * 100)
         if order.total * 100 != amount:
             return self.INVALID_AMOUNT
         return self.ORDER_FOUND
 
-    @transaction.atomic  # Ma'lumotlar bazasida o'zgarishlarni xavfsiz qilish
+    @transaction.atomic
     def successfully_payment(self, account, transaction, *args, **kwargs):
+        """To‘lov muvaffaqiyatli amalga oshganda ishlaydi"""
         try:
             order_id = UUID(transaction.order_key)
         except ValueError:
-            return self.ORDER_NOT_FOUND  # Yaroqsiz UUID bo‘lsa, xatolik
+            return self.ORDER_NOT_FOUND
 
-        order = Order.objects.filter(id=order_id).first()
+        order = Order.objects.filter(id=order_id, is_finished=False).first()
         if not order:
             return self.ORDER_NOT_FOUND
 
         order.is_finished = True
         order.save()
 
+        update_user_payment(order.user_id, order.total)
+
     def cancel_payment(self, account, transaction, *args, **kwargs):
-        print("Transaction canceled:", transaction.order_key)
+        """To‘lov bekor qilinganda ishlaydi"""
+        logging.info(f"Transaction canceled: {transaction.order_key}")
 
 
 class TestView(MerchantAPIView):
+    """Paycom test API"""
     VALIDATE_CLASS = CheckOrder
 
     @extend_schema(
@@ -54,6 +65,8 @@ class TestView(MerchantAPIView):
 
 
 class PaycomInitializationView(APIView):
+    """Paycom orqali to‘lovni boshlash"""
+
     @extend_schema(
         summary="Paycom orqali to‘lovni boshlash",
         description="Foydalanuvchiga Paycom orqali to‘lov qilish uchun URL qaytaradi.",
@@ -61,10 +74,10 @@ class PaycomInitializationView(APIView):
             "application/json": {
                 "type": "object",
                 "properties": {
-                    "order_id": {"type": "string", "example": "4148e2a8-443b-4c09-803e-e51694004acc"},
-                    "amount": {"type": "number", "example": 10000.00}
+                    "user_id": {"type": "integer", "example": 12345},
+                    "amount": {"type": "number", "example": 45000}
                 },
-                "required": ["order_id", "amount"],
+                "required": ["user_id", "amount"],
             }
         },
         responses={
@@ -74,28 +87,32 @@ class PaycomInitializationView(APIView):
                     "payment_url": {"type": "string", "example": "https://checkout.paycom.uz/..."}
                 },
             },
-            400: {"description": "Xato: order_id yoki amount noto‘g‘ri"},
-            404: {"description": "Buyurtma topilmadi"},
+            400: {"description": "Xato: user_id yoki amount noto‘g‘ri"},
         },
     )
     def post(self, request):
-        order_id = request.data.get("order_id")
+        user_id = request.data.get("user_id")
         amount = request.data.get("amount")
 
-        if not order_id or not amount:
-            return Response({"error": "order_id va amount talab qilinadi"}, status=status.HTTP_400_BAD_REQUEST)
+        if not isinstance(user_id, int) or not isinstance(amount, (int, float, str)):
+            return Response({"error": "user_id butun son bo‘lishi kerak va amount raqam bo‘lishi kerak"},
+                            status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            order = Order.objects.get(id=order_id, is_finished=False)
-        except Order.DoesNotExist:
-            return Response({"error": "Buyurtma topilmadi yoki allaqachon tugatilgan"},
-                            status=status.HTTP_404_NOT_FOUND)
+            amount = Decimal(amount).quantize(Decimal("0.01"), rounding=ROUND_DOWN)
+        except Exception:
+            return Response({"error": "Noto‘g‘ri amount qiymati"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            order = Order.objects.create(user_id=user_id, total=amount)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         paycom = Paycom()
         url = paycom.create_initialization(
-            amount=float(amount),
+            amount=amount,
             order_id=str(order.id),
-            return_url=f"http://{SITE_URL}/paycom/success",
+            return_url=f"http://{SITE_URL}/api/paycom/",
         )
 
-        return Response({"payment_url": url}, status=status.HTTP_200_OK)
+        return Response({"payment_url": url, "order_id": str(order.id)}, status=status.HTTP_200_OK)
